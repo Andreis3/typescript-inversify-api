@@ -1,0 +1,61 @@
+import * as express from 'express';
+import {
+    interfaces,
+    controller,
+    httpGet,
+    httpPost,
+    httpDelete,
+    request,
+    queryParam,
+    next,
+    response,
+    requestParam,
+} from 'inversify-express-utils';
+import { inject } from 'inversify';
+import User from '../models/User';
+import IUserService from '../interfaces/services/IUserService';
+import TYPE from '../constants/Types';
+
+@controller('/users')
+export class UserController implements interfaces.Controller {
+    private readonly _userService: IUserService;
+
+    public constructor(@inject(TYPE.UserService) userService: IUserService) {
+        this._userService = userService;
+    }
+
+    @httpGet('/')
+    async getAll(
+        @queryParam('start') start: number,
+        @queryParam('count') count: number,
+        @response() res: express.Response,
+        @next() next: express.NextFunction,
+    ) {
+        return this._userService
+            .findAll(start, count)
+            .then((users: Array<User>) => res.json({ users: users }))
+            .catch((err: Error) => {
+                res.status(400).json({ error: err.message });
+            });
+    }
+
+    @httpGet('/:id')
+    async getById(@requestParam('id') id: string, @response() res: express.Response) {
+        return this._userService
+            .findById(id)
+            .then((user: User) => res.json({ user: user }))
+            .catch((err: Error) => {
+                res.status(400).json({ error: err.message });
+            });
+    }
+
+    @httpPost('/')
+    async create(@request() req: express.Request, @response() res: express.Response) {
+        return this._userService
+            .create(req.body)
+            .then(() => res.sendStatus(201))
+            .catch((err: Error) => {
+                res.status(400).json({ error: err.message });
+            });
+    }
+}
